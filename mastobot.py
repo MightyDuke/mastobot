@@ -5,7 +5,6 @@ import inspect
 import aiocron
 import logging
 import atoot
-from dotenv import load_dotenv
 from pathlib import Path
 from functools import wraps
 
@@ -103,8 +102,6 @@ class Mastobot:
 __all__ = (Mastobot, Module, schedule)
 
 async def main():
-    load_dotenv()
-
     logging.basicConfig(format="%(levelname)s: (%(name)s) %(message)s", level="INFO")
     logging.getLogger("asyncio").setLevel("CRITICAL")
 

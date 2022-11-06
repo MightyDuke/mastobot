@@ -20,7 +20,9 @@ class Module:
         for key, value in os.environ.items():
             if match := re.match(rf"MASTOBOT_{self.__class__.__name__.upper()}_(\S+)", key):
                 member = match.group(1).lower()
-                setattr(self.__class__, member, value)
+
+                if not hasattr(self, member):
+                    setattr(self.__class__, member, value)
 
     async def cron(self, func, spec):
         async def wrapper():
@@ -102,4 +104,7 @@ async def main():
     await mastobot.run()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

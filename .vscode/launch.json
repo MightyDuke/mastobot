@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/mastobot.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

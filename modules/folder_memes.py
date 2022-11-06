@@ -1,10 +1,8 @@
 import random
 from pathlib import Path
-from mastobot import Module, schedule
+from mastobot import Module
 
 class FolderMemes(Module):
-    meme_folder = "/home/josef/Downloads/memes"
-
     @classmethod
     def get_random_meme(cls):
         return random.choice([
@@ -14,9 +12,9 @@ class FolderMemes(Module):
         ])
 
     async def start(self):
+        await self.cron(self.post_meme, self.schedule)
         await self.post_meme()
 
-    @schedule("0 * * * *")
     async def post_meme(self):
         meme = self.get_random_meme()
         await self.post_image(meme)

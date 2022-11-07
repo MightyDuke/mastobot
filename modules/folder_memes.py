@@ -24,7 +24,6 @@ class FolderMemes(Module):
 
     async def start(self):
         await self.cron(self.post_meme, self.schedule)
-        await self.post_meme()
 
     async def post_meme(self):
         meme = self.get_random_meme()

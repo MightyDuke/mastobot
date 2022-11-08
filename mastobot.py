@@ -25,13 +25,14 @@ class Module:
                     setattr(self.__class__, member, value)
 
     async def cron(self, func, spec):
+        @wraps(func)
         async def wrapper():
             self.mastobot.logger.info(f"Executing scheduled function \"{func.__qualname__}\"")
 
             try:
                 await func()
             except Exception as e:
-                self.mastobot.logger.info(f"Exception occured in \"{func.__qualname__}\": {e}")
+                self.mastobot.logger.error(f"Exception occured in \"{func.__qualname__}\": {e}")
 
         aiocron.crontab(spec, func=lambda: asyncio.create_task(wrapper()))
         self.mastobot.logger.info(f"Scheduled function \"{func.__qualname__}\"")

@@ -7,6 +7,9 @@ class FolderMemes(Module):
         super().__init__(mastobot)
         self.last_memes = []
 
+        if not Path(self.meme_folder).is_dir():
+            raise ValueError(f"Meme folder {self.meme_folder} doesn't exist")
+
     def get_random_meme(self):
         possible_memes = set(
             file
@@ -26,6 +29,12 @@ class FolderMemes(Module):
         await self.cron(self.post_meme, self.schedule)
 
     async def post_meme(self):
-        meme = self.get_random_meme()
-        await self.post_image(meme)
+        while True:
+            try:
+                meme = self.get_random_meme()
+                await self.post_image(meme)
+                break
+            except Exception as e:
+                self.logger.error(f"Error when posting a meme, trying again: {e}")
+
         self.logger.info(f"Posted a meme: {meme}")

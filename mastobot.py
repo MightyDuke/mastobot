@@ -31,7 +31,7 @@ class Module:
                 self.mastobot.logger.error(f"Exception occured in \"{func.__qualname__}\": {e}")
 
         aiocron.crontab(spec, func=lambda: asyncio.create_task(wrapper()))
-        self.mastobot.logger.info(f"Scheduled function \"{func.__qualname__}\"")
+        self.mastobot.logger.info(f"Scheduled function \"{func.__qualname__}\" with schedule \"{spec}\"")
 
     async def connect(self):
         if getattr(self, "instance_url", None) == None:

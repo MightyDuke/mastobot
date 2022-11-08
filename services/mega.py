@@ -12,12 +12,12 @@ class Mega(Service):
 
     async def ls(self, path):
         process = await asyncio.create_subprocess_exec(
-            "megals", *self.__common_arguments, "-R",
+            "megals", *self.__common_arguments, 
             f"/Root{path}",
             stdout=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        return [file.lstrip("/Root") for file in stdout.decode().splitlines()]
+        return [file[5:] for file in stdout.decode().splitlines()]
 
     @asynccontextmanager
     async def get(self, path):

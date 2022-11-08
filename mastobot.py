@@ -18,7 +18,9 @@ class Module:
 
     def load_member_variables(self):
         for key, value in os.environ.items():
-            if match := re.match(rf"MASTOBOT_{self.__class__.__name__.upper()}_(\S+)", key):
+            match = re.match(rf"MASTOBOT_{self.__class__.__name__.upper()}_(\S+)", key)
+
+            if match:
                 member = match.group(1).lower()
 
                 if not hasattr(self, member):

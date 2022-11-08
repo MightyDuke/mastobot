@@ -1,5 +1,4 @@
 import random
-from pathlib import Path
 from mastobot import Module
 
 class FolderMemes(Module):
@@ -7,17 +6,10 @@ class FolderMemes(Module):
         super().__init__(mastobot)
         self.last_memes = []
 
-        if not Path(self.meme_folder).is_dir():
-            raise ValueError(f"Meme folder {self.meme_folder} doesn't exist")
+    async def get_random_meme(self):
+        possible_memes = await self.mega.ls(self.meme_folder)
 
-    def get_random_meme(self):
-        possible_memes = set(
-            file
-            for file in Path(self.meme_folder).iterdir()
-            if file.is_file()
-        )
-
-        meme = random.choice(tuple(possible_memes - set(self.last_memes)))
+        meme = random.choice(tuple(set(possible_memes) - set(self.last_memes)))
         self.last_memes.append(meme)
 
         if len(self.last_memes) > 10:
@@ -31,8 +23,11 @@ class FolderMemes(Module):
     async def post_meme(self):
         while True:
             try:
-                meme = self.get_random_meme()
-                await self.post_image(meme)
+                meme = await self.get_random_meme()
+
+                async with self.mega.get(meme) as file:
+                    await self.post_image(file)
+
                 break
             except Exception as e:
                 self.logger.error(f"Error when posting a meme, trying again: {e}")

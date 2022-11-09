@@ -2,7 +2,7 @@ import asyncio
 import tempfile
 import os
 from contextlib import asynccontextmanager
-from mastobot import Service
+from . import Service
 
 class Mega(Service):
     @property

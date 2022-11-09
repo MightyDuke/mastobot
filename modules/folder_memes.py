@@ -1,7 +1,7 @@
 import random
 import signal
 import asyncio
-from mastobot import Module
+from . import Module
 
 class FolderMemes(Module):
     def __init__(self, mastobot):

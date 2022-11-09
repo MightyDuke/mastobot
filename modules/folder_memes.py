@@ -1,4 +1,6 @@
 import random
+import signal
+import asyncio
 from mastobot import Module
 
 class FolderMemes(Module):
@@ -17,7 +19,12 @@ class FolderMemes(Module):
 
         return meme
 
+    async def handle_sigusr1(self):
+        self.logger.info("Received signal USR1")
+        await self.post_meme()
+
     async def start(self):
+        signal.signal(signal.SIGUSR1, lambda signum, frame: asyncio.create_task(self.handle_sigusr1()))
         await self.cron(self.post_meme, self.schedule)
 
     async def post_meme(self):

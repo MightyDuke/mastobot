@@ -38,7 +38,7 @@ class Mastobot:
         for service in self.get_classes(self.services_path, name, Service):
             self.assign_env_variables(service, rf"MASTOBOT_SERVICE_{service.__class__.__name__}_(\S+)")
             self.logger.info(f"Loaded service \"{service.__class__.__name__}\" from \"{service.__module__}\"")
-            
+
             self.services[service.__class__.__name__.lower()] = service
 
     async def load_module(self, name):
@@ -72,8 +72,6 @@ class Mastobot:
             await self.load_module(module_path.stem)
 
         await asyncio.wait(asyncio.all_tasks())
-
-__all__ = (Mastobot, Module)
 
 async def main():
     logging.basicConfig(format="%(levelname)s: (%(name)s) %(message)s", level="INFO")

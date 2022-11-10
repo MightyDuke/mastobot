@@ -14,11 +14,11 @@ class Mastobot:
     @staticmethod
     def assign_env_variables(instance, pattern):
         for key, value in os.environ.items():
-            if match := re.match(pattern.upper(), key.upper()):
-                member = match.group(1).lower()
+            if match := re.match(pattern, key, re.IGNORECASE):
+                attribute = match.group(1).lower()
 
-                if not hasattr(instance, member):
-                    setattr(instance.__class__, member, value)
+                if not hasattr(instance, attribute):
+                    setattr(instance.__class__, attribute, value)
 
     def __init__(self, modules_path="modules", services_path="services"):
         self.modules = []
@@ -28,11 +28,11 @@ class Mastobot:
         self.logger = logging.getLogger("Mastobot")
 
     def get_classes(self, path, name, base_cls):
-            return [
-                cls(self)
-                for _, cls in inspect.getmembers(importlib.import_module(f"{path}.{name}"))
-                if inspect.isclass(cls) and cls != base_cls and issubclass(cls, base_cls)
-            ]
+        return [
+            cls(self)
+            for _, cls in inspect.getmembers(importlib.import_module(f"{path}.{name}"))
+            if inspect.isclass(cls) and cls != base_cls and issubclass(cls, base_cls)
+        ]
 
     async def load_service(self, name):
         for service in self.get_classes(self.services_path, name, Service):

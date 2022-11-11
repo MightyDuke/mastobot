@@ -9,22 +9,10 @@ class Mega:
     def __common_arguments(self):
         return "-u", self.username, "-p", self.password
 
-    async def start(self):
-        for command in "megatest", "megals", "megaget":
+    def start(self):
+        for command in "megals", "megaget":
             if shutil.which(command) is None:
                 raise FileNotFoundError(f"Missing command: {command}. Please install megatools.")
-
-        process = await asyncio.create_subprocess_exec(
-            "megatest", *self.__common_arguments,
-            "/Root",
-            stdout=asyncio.subprocess.PIPE
-        )
-        return_value = await process.wait()
-
-        if return_value != 0:
-            raise ValueError("Failed to connect to Mega!")
-
-        self.logger.info("Connected to Mega!")
 
     async def ls(self, path):
         process = await asyncio.create_subprocess_exec(

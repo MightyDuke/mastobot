@@ -68,7 +68,7 @@ class Mastobot:
             if key == type:
                 continue
 
-            if not hasattr(instance, key) or not hasattr(instance.__class__, key):
+            if not hasattr(instance, key) and not hasattr(instance.__class__, key):
                 setattr(instance, key, value)
 
         if call_connect:

@@ -3,26 +3,22 @@ import asyncio
 import aiocron
 from collections import deque
 from mastobot import Module
-from functools import wraps
 
 class ScheduledImages(Module):
-    async def cron(self, func, spec):
-        @wraps(func)
-        async def wrapper():
-            self.mastobot.logger.info(f"Executing scheduled function \"{self.name}.{func.__name__}\"")
-
-            try:
-                await func()
-            except Exception as e:
-                self.mastobot.logger.error(f"Exception occured in scheduled function \"{self.name}.{func.__name__}\": {e}")
-
-        aiocron.crontab(spec, func=lambda: asyncio.create_task(wrapper()))
-        self.mastobot.logger.info(f"Scheduled function \"{self.name}.{func.__name__}\" with schedule \"{spec}\"")
-
     async def start(self):
         self.last_images = deque(maxlen=10)
+
+        if not self.file_service_name in self.mastobot.services:
+            raise KeyError(f"Missing service: {self.file_service_name}")
+
         self.file_service = self.mastobot.services[self.file_service_name]
-        await self.cron(self.post_image, self.schedule)
+
+        async def wrapper():
+            self.logger.info(f"Posting scheduled image")
+            await self.post_image()
+
+        aiocron.crontab(self.schedule, func=lambda: asyncio.create_task(wrapper()))
+        self.logger.info(f"Scheduled posting an image with schedule \"{self.schedule}\"")
 
     async def get_random_image(self):
         possible_images = await self.file_service.ls(self.image_folder)
@@ -40,6 +36,6 @@ class ScheduledImages(Module):
                 await self.post_image(file)
         except Exception as e:
             self.logger.error(f"Error when posting an image, trying again: {e}")
-            return self.post_image()
+            return await self.post_image()
 
         self.logger.info(f"Posted an image: {image}")

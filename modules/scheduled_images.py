@@ -25,6 +25,6 @@ class ScheduledImages(Module):
                 await self.post_image(file)
         except Exception as e:
             self.logger.error(f"Error when posting an image, trying again: {e}")
-            return self.post_scheduled_image()
+            return await self.post_scheduled_image()
 
         self.logger.info(f"Posted an image: {image}")

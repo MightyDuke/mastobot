@@ -32,8 +32,6 @@ class Module:
         self.api = await MastodonAPI.create(self.instance_url, access_token=self.access_token)
         await self.api.verify_app_credentials()
 
-        self.logger.info("Logged in!")
-
     async def post_status(self, status):
         await self.api.create_status(status=status)
 

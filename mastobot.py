@@ -6,9 +6,22 @@ import inspect
 import logging
 import configparser
 import argparse
+import aiocron
 from atoot import MastodonAPI
 
 class Module:
+    async def cron(self, func, spec):
+        async def wrapper():
+            self.logger.info(f"Executing scheduled function \"{func.__name__}\"")
+
+            try:
+                await func()
+            except Exception as e:
+                self.logger.error(f"Exception occured in scheduled function \"{func.__name__}\": {e}")
+
+        aiocron.crontab(spec, func=lambda: asyncio.create_task(wrapper()))
+        self.logger.info(f"Scheduled function \"{func.__name__}\" with schedule \"{spec}\"")
+
     async def connect(self):
         if getattr(self, "instance_url", None) == None:
             raise ValueError(f"Module {self.name} is missing instance url")

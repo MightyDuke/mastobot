@@ -58,7 +58,7 @@ class Mastobot:
             cls = getattr(importlib.import_module(str.join(".", components[:-1])), components[-1])
             instance = cls()
         except Exception as e:
-            raise ImportError(f"{config.name}: Failed to import {type} \"{config.name}\" from class \"{config[type]}\"")
+            raise ImportError(f"Failed to load {type} \"{config.name}\" from class \"{config[type]}\"")
 
         instance.name = config.name
         instance.mastobot = self

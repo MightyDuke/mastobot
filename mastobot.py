@@ -1,88 +1,123 @@
 #!/usr/bin/env python3
 
-import os
 import asyncio
 import importlib
 import inspect
 import logging
-import re
-from pathlib import Path
-from modules import Module
-from services import Service
+import configparser
+import argparse
+from atoot import MastodonAPI
+
+class Module:
+    async def connect(self):
+        if getattr(self, "instance_url", None) == None:
+            raise ValueError(f"Module {self.name} is missing instance url")
+
+        if getattr(self, "access_token", None) == None:
+            raise ValueError(f"Module {self.name} is missing access token")
+
+        self.api = await MastodonAPI.create(self.instance_url, access_token=self.access_token)
+        await self.api.verify_app_credentials()
+
+        self.logger.info("Logged in!")
+
+    async def post_status(self, status):
+        await self.api.create_status(status=status)
+
+    async def post_image(self, path):
+        with open(path, "rb") as file:
+            attachment = await self.api.upload_attachment(file)
+
+        await self.api.create_status(media_ids=(attachment["id"],))
 
 class Mastobot:
-    @staticmethod
-    def assign_env_variables(instance, pattern):
-        for key, value in os.environ.items():
-            if match := re.match(pattern, key, re.IGNORECASE):
-                attribute = match.group(1).lower()
-
-                if not hasattr(instance, attribute):
-                    setattr(instance.__class__, attribute, value)
-
-    def __init__(self, modules_path="modules", services_path="services"):
-        self.modules = []
+    def __init__(self, config_path):
+        self.modules = {}
         self.services = {}
-        self.modules_path = modules_path
-        self.services_path = services_path
+
         self.logger = logging.getLogger("Mastobot")
 
-    def get_classes(self, path, name, base_cls):
-        return [
-            cls(self)
-            for _, cls in inspect.getmembers(importlib.import_module(f"{path}.{name}"))
-            if inspect.isclass(cls) and cls != base_cls and issubclass(cls, base_cls)
-        ]
+        self.config = configparser.ConfigParser()
+        self.config.read(config_path)
 
-    async def load_service(self, name):
-        for service in self.get_classes(self.services_path, name, Service):
-            self.assign_env_variables(service, rf"MASTOBOT_SERVICE_{service.__class__.__name__}_(\S+)")
-            self.logger.info(f"Loaded service \"{service.__class__.__name__}\" from \"{service.__module__}\"")
+    async def load_instance(self, type, config, instance_dict, call_connect):
+        components = config[type].split(".")
 
-            self.services[service.__class__.__name__.lower()] = service
+        try:
+            cls = getattr(importlib.import_module(str.join(".", components[:-1])), components[-1])
+            instance = cls()
+        except Exception as e:
+            raise ImportError(f"{config.name}: Failed to import {type} \"{config.name}\" from class \"{config[type]}\"")
 
-    async def load_module(self, name):
-        for module in self.get_classes(self.modules_path, name, Module):
-            self.assign_env_variables(module, rf"MASTOBOT_MODULE_{module.__class__.__name__}_(\S+)")
+        instance.name = config.name
+        instance.mastobot = self
+        instance.logger = logging.getLogger(f"Mastobot.{config.name}")
 
-            try:
-                await module.connect()
-            except Exception as e:
-                module.logger.error(f"Failed to connect: {e}")
+        for key, value in config.items():
+            if key == type:
                 continue
 
-            self.logger.info(f"Loaded module \"{module.__class__.__name__}\" from \"{module.__module__}\"")
+            if not hasattr(instance, key) or not hasattr(instance.__class__, key):
+                setattr(instance, key, value)
 
-            for key, value in self.services.items():
-                setattr(module, key, value)
-
-            self.modules.append(module)
-
+        if call_connect:
             try:
-                await module.start()
+                await instance.connect()
             except Exception as e:
-                module.logger.error(f"Failed to run start: {e}")
-                continue
+                raise RuntimeError(f"Failed to connect with {type} {config.name}: {e}")
 
-    async def run(self):
-        for service_path in Path(self.services_path).iterdir():
-            await self.load_service(service_path.stem)
+        self.logger.info(f"Loaded {type} \"{config.name}\" from class \"{config[type]}\"")
 
-        for module_path in Path(self.modules_path).iterdir():
-            await self.load_module(module_path.stem)
+        try:
+            if callable(getattr(instance, "start", None)):
+                result = instance.start()
 
-        await asyncio.wait(asyncio.all_tasks())
+                if inspect.isawaitable(result):
+                    await result
+        except Exception as e:
+            raise RuntimeError(f"Failed to run start on {type} \"{config.name}\": {e}")
 
-async def main():
+        if config.name in instance_dict:
+            raise RuntimeError(f"{type.capitalize()} \"{config.name}\" already exists")
+
+        instance_dict[config.name] = instance
+
+    async def load_instances(self, type, instance_dict, call_connect):
+        instance_tasks = []
+
+        for section in self.config.sections():
+            if type in self.config[section]:
+                instance_tasks.append(asyncio.create_task(
+                    self.load_instance(type, self.config[section], instance_dict, call_connect))
+                )
+
+        await asyncio.wait(instance_tasks)
+
+    async def start(self):
+        await self.load_instances("service", self.services, False)
+        await self.load_instances("module", self.modules, True)
+
+    def run(self):
+        loop = asyncio.new_event_loop()
+        loop.set_exception_handler(lambda _, context: self.logger.error(context["exception"]))
+
+        loop.run_until_complete(self.start())
+        loop.run_forever()
+
+def main():
     logging.basicConfig(format="%(levelname)s: (%(name)s) %(message)s", level="INFO")
     logging.getLogger("asyncio").setLevel("CRITICAL")
 
-    mastobot = Mastobot()
+    parser = argparse.ArgumentParser(
+        "mastobot", 
+        description="Bot for posting things on Mastodon"
+    )
 
-    await mastobot.run()
+    parser.add_argument("-c", "--config", nargs="?", default="config.ini", help="Config path")
+    args = parser.parse_args()
+
+    mastobot = Mastobot(args.config)
+    mastobot.run()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    main()

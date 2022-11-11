@@ -1,13 +1,30 @@
 import asyncio
 import tempfile
 import os
+import shutil
 from contextlib import asynccontextmanager
-from . import Service
 
-class Mega(Service):
+class Mega:
     @property
     def __common_arguments(self):
         return "-u", self.username, "-p", self.password
+
+    async def start(self):
+        for command in "megatest", "megals", "megaget":
+            if shutil.which(command) is None:
+                raise FileNotFoundError(f"Missing command: {command}. Please install megatools.")
+
+        process = await asyncio.create_subprocess_exec(
+            "megatest", *self.__common_arguments,
+            "/Root",
+            stdout=asyncio.subprocess.PIPE
+        )
+        return_value = await process.wait()
+
+        if return_value != 0:
+            raise ValueError("Failed to connect to Mega!")
+
+        self.logger.info("Connected to Mega!")
 
     async def ls(self, path):
         process = await asyncio.create_subprocess_exec(
@@ -16,6 +33,7 @@ class Mega(Service):
             stdout=asyncio.subprocess.PIPE
         )
         stdout, _ = await process.communicate()
+
         return [file.removeprefix("/Root") for file in stdout.decode().splitlines()]
 
     @asynccontextmanager

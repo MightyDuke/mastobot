@@ -52,6 +52,9 @@ class Mastobot:
         self.config.read(config_path)
 
     async def load_instance(self, type, config, instance_dict, call_connect):
+        if config.name in instance_dict:
+            raise RuntimeError(f"{type.capitalize()} \"{config.name}\" already exists")
+
         components = config[type].split(".")
 
         try:
@@ -87,9 +90,6 @@ class Mastobot:
                     await result
         except Exception as e:
             raise RuntimeError(f"Failed to run start on {type} \"{config.name}\": {e}")
-
-        if config.name in instance_dict:
-            raise RuntimeError(f"{type.capitalize()} \"{config.name}\" already exists")
 
         instance_dict[config.name] = instance
 

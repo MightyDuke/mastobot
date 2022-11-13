@@ -32,15 +32,6 @@ class Module:
         self.api = await MastodonAPI.create(self.instance_url, access_token=self.access_token)
         await self.api.verify_app_credentials()
 
-    async def post_status(self, status):
-        await self.api.create_status(status=status)
-
-    async def post_image(self, path):
-        with open(path, "rb") as file:
-            attachment = await self.api.upload_attachment(file)
-
-        await self.api.create_status(media_ids=(attachment["id"],))
-
 class Mastobot:
     def __init__(self, config_path):
         self.modules = {}

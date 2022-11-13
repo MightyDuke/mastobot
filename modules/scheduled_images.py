@@ -22,7 +22,10 @@ class ScheduledImages(Module):
             image = await self.get_random_image()
 
             async with self.file_service.get(image) as file:
-                await self.post_image(file)
+                attachment = await self.api.upload_attachment(file)
+
+            await self.api.create_status(media_ids=(attachment["id"],))
+
         except Exception as e:
             self.logger.error(f"Error when posting an image, trying again: {e}")
             return await self.post_scheduled_image()

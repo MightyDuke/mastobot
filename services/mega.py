@@ -38,6 +38,7 @@ class Mega:
         await process.wait()
 
         try:
-            yield file_name
+            with open(file_name, "rb") as opened_file:
+                yield opened_file
         finally:
             os.unlink(file_name)

@@ -9,6 +9,16 @@ import argparse
 import aiocron
 from atoot import MastodonAPI
 
+class Config:
+    def __init__(self, dict):
+        self.dict = dict
+
+    def __getattr__(self, key):
+        return self.dict.get(key, None)
+
+    def __contains__(self, key):
+        return key in self.dict
+
 class Module:
     async def cron(self, func, spec):
         async def wrapper():
@@ -23,13 +33,13 @@ class Module:
         self.logger.info(f"Scheduled function \"{func.__name__}\" with schedule \"{spec}\"")
 
     async def connect(self):
-        if getattr(self, "instance_url", None) == None:
+        if "instance_url" not in self.config:
             raise ValueError(f"Module {self.name} is missing instance url")
 
-        if getattr(self, "access_token", None) == None:
+        if "access_token" not in self.config:
             raise ValueError(f"Module {self.name} is missing access token")
 
-        self.api = await MastodonAPI.create(self.instance_url, access_token=self.access_token)
+        self.api = await MastodonAPI.create(self.config.instance_url, access_token=self.config.access_token)
         await self.api.verify_app_credentials()
 
 class Mastobot:
@@ -57,13 +67,7 @@ class Mastobot:
         instance.name = config.name
         instance.mastobot = self
         instance.logger = logging.getLogger(f"Mastobot.{config.name}")
-
-        for key, value in config.items():
-            if key == type:
-                continue
-
-            if not hasattr(instance, key) and not hasattr(instance.__class__, key):
-                setattr(instance, key, value)
+        instance.config = Config({key: value for key, value in config.items() if key != type})
 
         if call_connect:
             try:

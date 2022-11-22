@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 class Mega:
     @property
     def __common_arguments(self):
-        return "-u", self.username, "-p", self.password
+        return "-u", self.config.username, "-p", self.config.password
 
     def start(self):
         for command in "megals", "megaget":

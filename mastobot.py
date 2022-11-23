@@ -14,7 +14,7 @@ class Config:
         self.dict = dict
 
     def __getattr__(self, key):
-        return self.dict.get(key, None)
+        return self.dict.get(key)
 
     def __contains__(self, key):
         return key in self.dict
